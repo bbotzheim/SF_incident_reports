@@ -6,6 +6,7 @@ library(DT)
 library(leaflet)
 library(ggplot2)
 library(RColorBrewer)
+library(htmltools)
 
 reports = read.csv("SF_reports_new.csv", header = T, stringsAsFactors = F)
 reports$Incident.Date=as.Date(reports$Incident.Date)

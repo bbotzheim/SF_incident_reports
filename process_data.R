@@ -1,3 +1,4 @@
+library(dplyr)
 reports = read.csv("incident_reports_SF.csv", header = T, stringsAsFactors = F)
 reports$Incident.Time = gsub(":", "", reports$Incident.Time)
 reports$Incident.Time = as.numeric(reports$Incident.Time)
@@ -5,7 +6,7 @@ reports$Incident.Date=as.Date(reports$Incident.Date)
 reports = reports %>% 
   mutate(., month = format(Incident.Date, "%m"), Time_of_Day = ifelse(Incident.Time >= 2300 | Incident.Time < 0500, "Night", 
                                                                       ifelse(Incident.Time >= 0500 & Incident.Time < 1100 ,"Morning", 
-                                                                             ifelse(Incident.Time>=1100 & Incident.Time <1700, "Afternoon" ,
+                                                                             ifelse(Incident.Time>=1100 & Incident.Time <1700, "Midday" ,
                                                                                     ifelse(Incident.Time>=1700 & Incident.Time <2300, "Evening", 0)))))
 reports = reports %>% 
   mutate(., season = ifelse(month=="03" | month=="04" | month=="05", "Spring", 

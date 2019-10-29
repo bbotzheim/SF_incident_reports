@@ -9,7 +9,9 @@ function(input, output, session){
         filter(., Incident.Category==input$selected & Incident.Date >= input$dateRange[1] & Incident.Date <= input$dateRange[2])
     }
   })
-
+##Pie Chart Disclaimer
+  output$disclaimer <- renderText({"*Morning:5am-11am, Midday:11am-5pm, Evening:5pm-11pm, Night:11pm-5am"})
+  output$disclaimer2 <- renderText({"*Morning:5am-11am, Midday:11am-5pm, Evening:5pm-11pm, Night:11pm-5am"})
 ##Dynamic Graph Titles
   output$caption <- renderText({
     paste(input$selected, "Incidents, clustered")
@@ -33,15 +35,36 @@ function(input, output, session){
     paste(input$compare_select2, "Incidents by Time of Day")
   })
 ## Map tab output
+  output$map <- renderLeaflet({
+    leaflet(data = reports_by_type(), 
+            options = leafletOptions(minZoom = 10, maxZoom = 20)) %>%
+      setView(-122.4194, 37.7649, zoom = 12) %>% 
+      addProviderTiles(providers$CartoDB.Positron) %>% 
+      addMarkers(lat = ~Latitude, lng =  ~Longitude,
+                 label = ~htmlEscape(Incident.Subcategory),
+                 clusterOptions = markerClusterOptions())
+  })
+  output$location <- renderGvis(
+    gvisColumnChart(reports_by_type() %>% 
+                      group_by(., Police.District) %>% 
+                      summarize(., Total = n()),
+                    options=list(
+                      hAxis="{title:'Neighborhood'}",
+                      vAxis="{title:'Total Incidents Reported'}",
+                      legend = "none",
+                      width=1225, height=300,
+                      colors = "['#F39C12']")
+    ))
+  #value/info boxes
   output$totBox <- renderValueBox({
     total_incidents = nrow(reports_by_type())
-        if (input$selected=="Total"){
+    if (input$selected=="Total"){
       cap = "Selected: Total Incidents"
       color = "green"
     } else {
       cap = paste("Selected: Total", input$selected, "Incidents")
       color = "green"
-      }
+    }
     valueBox(icon = icon("angle-double-right"),total_incidents,cap, color = color)
   })
   output$max_neigh <-renderValueBox({
@@ -65,26 +88,6 @@ function(input, output, session){
     cap = paste("Least Common:", min_report[2,1])
     infoBox(cap, min, icon = icon("angle-double-down"), color = color)
   })
-  output$map <- renderLeaflet({
-    leaflet(data = reports_by_type(), 
-            options = leafletOptions(minZoom = 10, maxZoom = 20)) %>%
-      setView(-122.4194, 37.7649, zoom = 12) %>% 
-      addProviderTiles(providers$CartoDB.Positron) %>% 
-      addMarkers(lat = ~Latitude, lng =  ~Longitude,
-                 clusterOptions = markerClusterOptions())
-  })
-  output$location <- renderGvis(
-    gvisColumnChart(reports_by_type() %>% 
-                      group_by(., Police.District) %>% 
-                      summarize(., Total = n()),
-                    options=list(
-                      hAxis="{title:'Neighborhood'}",
-                      vAxis="{title:'Total Incidents Reported'}",
-                      legend = "none",
-                      width=1600, height=340,
-                      colors = "['#F39C12']")
-    ))
-
 ## Timeline Tab Output
   output$timeline <- renderGvis(
     gvisAnnotationChart(reports_by_type() %>% 
@@ -92,11 +95,11 @@ function(input, output, session){
                    summarize(., Total = n()),
                   datevar = "Incident.Date",
                   numvar = "Total",
-      options = list(height = 400, width = 1000,
+      options = list(height = 400, width = 770,
                      fill=10, displayExactValues=TRUE,
                      hAxis="{title:'Year/Month'}",
                      vAxis="{title:'Total Incidents Reported'}",
-                     chartArea="{left:150,width:\"100%\",height:\"70%\"}")
+                     chartArea="{width:\"100%\",height:\"70%\"}")
     )
   )
   output$pieday <- renderGvis(
@@ -104,7 +107,7 @@ function(input, output, session){
                    group_by(., Time_of_Day) %>% 
                    summarize(., Total = n()),
                  options = list(chartArea="{left:20,top:20,width:\"100%\",height:\"100%\"}",
-                 width = 500, height = 400,
+                 width = 350, height = 300,
                  colors="['#27AE60','#5499C7', '#F7DC6F', '#9B59B6']"))
   )
   output$weekday <- renderGvis(
@@ -115,15 +118,16 @@ function(input, output, session){
                       hAxis="{title:'Day of the Week'}",
                       vAxis="{title:'Total Incidents Reported'}",
                       legend = "none",
-                      width=920, height=290,
+                      width=800, height=290,
                       colors = "['#F39C12']"))
     )
+  # value/info boxes
   output$avg_by_day <-renderValueBox({
     avg = reports_by_type() %>% 
       group_by(., Incident.Date) %>% 
       summarize(., Total = n()) %>% 
       summarize(., mean(Total))
-    cap = paste("Selected:", input$selected, "Avg per Day")
+    cap = paste("Selected:", input$selected, "Average Incidents per Day")
     color = "green"
     valueBox(round(avg), cap,icon=icon("calculator"), color = color)
   })  
@@ -147,18 +151,22 @@ function(input, output, session){
   })
 ## Comparison Tab Output
   compare_district1 <- reactive({
-    reports %>% 
+    df = reports %>% 
       filter(., Incident.Category==input$compare_select1, 
              Incident.Date >= input$compare_dateRange[1] & Incident.Date <= input$compare_dateRange[2]) %>% 
       group_by(., Police.District) %>% 
       summarize(., "Total1" = n())
+    colnames(df)[2] <- input$compare_select1
+    df
   })
   compare_district2 <- reactive({
-    reports %>% 
+    df = reports %>% 
       filter(., Incident.Category==input$compare_select2,
              Incident.Date >= input$compare_dateRange[1] & Incident.Date <= input$compare_dateRange[2]) %>% 
       group_by(., Police.District) %>% 
       summarize(., "Total2" = n())
+    colnames(df)[2] <- input$compare_select2
+    df
   })
   compare_reports1 <- reactive({
     reports %>% 
@@ -177,13 +185,32 @@ function(input, output, session){
       selected = choices_df[choices_df$Incident.Category!= input$compare_select1, ][2])
     })
 
-    output$linecompare <- renderGvis(
-    gvisLineChart(full_join(compare_district1(), compare_district2(), by = "Police.District"),
-      "Police.District", c("Total1", "Total2"), 
-      options = list(height = 250,
-        chartArea="{width:\"80%\",height:\"80%\"}")
-    )
+    output$chartcompare <- renderGvis(
+    gvisColumnChart(full_join(compare_district1(), compare_district2(), by = "Police.District"),
+      "Police.District", c(input$compare_select1, input$compare_select2), 
+      options = list(
+        height = 300, width=1250,
+        hAxis="{title: 'Neighborhood'}",
+        chartArea="{width:\"80%\",height:\"70%\"}",
+        colors = "['#F39C12', 'green']"))
   )
+  output$compare_pieday1 <- renderGvis(
+    gvisPieChart(compare_reports1() %>% 
+                   group_by(., Time_of_Day) %>% 
+                   summarize(., Total = n()),
+                 options = list(chartArea="{left:20,top:20,width:\"100%\",height:\"100%\"}",
+                                width = 400, height = 400,
+                                colors="['#27AE60','#5499C7', '#F7DC6F', '#9B59B6']"))
+  )
+  output$compare_pieday2 <- renderGvis(
+    gvisPieChart(compare_reports2() %>% 
+                   group_by(., Time_of_Day) %>% 
+                   summarize(., Total = n()),
+                 options = list(chartArea="{left:20,top:20,width:\"100%\",height:\"100%\"}",
+                                width = 400, height = 400,
+                                colors="['#27AE60','#5499C7', '#F7DC6F', '#9B59B6']"))
+  )
+  # value/info boxes
   output$compare1_value <- renderValueBox({
     total_incidents <-nrow(compare_reports1())
     cap = paste("Total", input$compare_select1, "Reports")
@@ -196,26 +223,10 @@ function(input, output, session){
     color = "green"
     valueBox(total_incidents, cap, color = color, icon = icon("angle-double-right"))
   })
-  output$compare_pieday1 <- renderGvis(
-    gvisPieChart(compare_reports1() %>% 
-                   group_by(., Time_of_Day) %>% 
-                   summarize(., Total = n()),
-                 options = list(chartArea="{left:20,top:20,width:\"100%\",height:\"100%\"}",
-                                width = 500, height = 400,
-                                colors="['#27AE60','#5499C7', '#F7DC6F', '#9B59B6']"))
-  )
-  output$compare_pieday2 <- renderGvis(
-    gvisPieChart(compare_reports2() %>% 
-                   group_by(., Time_of_Day) %>% 
-                   summarize(., Total = n()),
-                 options = list(chartArea="{left:20,top:20,width:\"100%\",height:\"100%\"}",
-                                width = 500, height = 400,
-                                colors="['#27AE60','#5499C7', '#F7DC6F', '#9B59B6']"))
-  )
 ## Data Tab Output
   output$table <- DT::renderDataTable({
     datatable(reports_by_type () %>% 
-                select(., 1,4,5,7,14,15,16,17,21,24,25), 
+                select(., 7,1,5,14,15,16,17,21), 
               rownames=FALSE) 
   })
 }
