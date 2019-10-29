@@ -182,14 +182,14 @@ function(input, output, session){
     updateSelectizeInput(
       session, "compare_select2",
       choices = choices_df[choices_df$Incident.Category != input$compare_select1, ],
-      selected = choices_df[choices_df$Incident.Category!= input$compare_select1, ][2])
+      selected = input$compare_select2)
     })
 
     output$chartcompare <- renderGvis(
     gvisColumnChart(full_join(compare_district1(), compare_district2(), by = "Police.District"),
       "Police.District", c(input$compare_select1, input$compare_select2), 
       options = list(
-        height = 300, width=1250,
+        height = 300, width=1200,
         hAxis="{title: 'Neighborhood'}",
         chartArea="{width:\"80%\",height:\"70%\"}",
         colors = "['#F39C12', 'green']"))
@@ -199,7 +199,7 @@ function(input, output, session){
                    group_by(., Time_of_Day) %>% 
                    summarize(., Total = n()),
                  options = list(chartArea="{left:20,top:20,width:\"100%\",height:\"100%\"}",
-                                width = 400, height = 400,
+                                width = 370, height = 400,
                                 colors="['#27AE60','#5499C7', '#F7DC6F', '#9B59B6']"))
   )
   output$compare_pieday2 <- renderGvis(
@@ -207,7 +207,7 @@ function(input, output, session){
                    group_by(., Time_of_Day) %>% 
                    summarize(., Total = n()),
                  options = list(chartArea="{left:20,top:20,width:\"100%\",height:\"100%\"}",
-                                width = 400, height = 400,
+                                width = 370, height = 400,
                                 colors="['#27AE60','#5499C7', '#F7DC6F', '#9B59B6']"))
   )
   # value/info boxes
