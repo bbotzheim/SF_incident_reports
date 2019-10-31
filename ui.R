@@ -102,7 +102,7 @@ dashboardPage(
                            htmlOutput("compare_pieday2")))
               ),
               fluidRow(
-                box(title = "Compare Total Incidents by Neighborhood",width = 12, height =370, status = "success", solidHeader = F, 
+                box(title = "Compare Total Incidents by District",width = 12, height =370, status = "success", solidHeader = F, 
                     htmlOutput("chartcompare"))
               )),
       tabItem(tabName = "data",

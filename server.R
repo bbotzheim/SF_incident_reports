@@ -1,5 +1,13 @@
 function(input, output, session){
-### Reactive Expressions for use in Location/Timeline Tabs
+#  conn <-dbConnector(session, dbname = dbname)
+
+  ### Reactive Expressions for use in Location/Timeline Tabs
+#  reports_by_type <- reactive(dbGetData(conn = conn,
+#                                        tblname=tblname,
+#                                        start_date = input$dateRange[1],
+#                                        end_date = input$dateRange[2],
+#                                        incident = input$selected))
+  
   reports_by_type <- reactive({
     if (input$selected == 'Total') {
       reports %>% 
@@ -9,7 +17,8 @@ function(input, output, session){
         filter(., Incident.Category==input$selected & Incident.Date >= input$dateRange[1] & Incident.Date <= input$dateRange[2])
     }
   })
-##Pie Chart Disclaimer
+  
+  ##Pie Chart Disclaimer
   output$disclaimer <- renderText({"*Morning:5am-11am, Midday:11am-5pm, Evening:5pm-11pm, Night:11pm-5am"})
   output$disclaimer2 <- renderText({"*Morning:5am-11am, Midday:11am-5pm, Evening:5pm-11pm, Night:11pm-5am"})
 ##Dynamic Graph Titles
@@ -17,7 +26,7 @@ function(input, output, session){
     paste(input$selected, "Incidents, clustered")
   })
   output$caption2 <- renderText({
-    paste(input$selected, "Incidents by Neighborhood")
+    paste(input$selected, "Incidents by District")
   })
   output$caption3 <- renderText({
     paste(input$selected, "Incidents by Time of Day")
@@ -49,7 +58,7 @@ function(input, output, session){
                       group_by(., Police.District) %>% 
                       summarize(., Total = n()),
                     options=list(
-                      hAxis="{title:'Neighborhood'}",
+                      hAxis="{title:'District'}",
                       vAxis="{title:'Total Incidents Reported'}",
                       legend = "none",
                       width=1225, height=300,
@@ -72,21 +81,27 @@ function(input, output, session){
       group_by(., Police.District) %>% 
       summarize(., Total = n()) %>% 
       arrange(., desc(Total))
-    cap = paste("Selected:", input$selected, ", Most Common Location" )
+    cap = paste("Selected:", input$selected, ", Most Common District" )
     color = "green"
     valueBox(max_hood[1,1],cap, icon=icon("home"), color = color)
   })
   output$maxBox <- renderInfoBox({
-    max = max_report[1,2]
+    max_report = reports %>% 
+      group_by(., Incident.Category) %>% 
+      summarize(., n = n()) %>% 
+      arrange(., desc(n))
     color = "teal"
     cap = paste("Most Common:", max_report[1,1])
-    infoBox(cap, max, icon = icon("angle-double-up"), color = color)
+    infoBox(cap, max_report[1,2], icon = icon("angle-double-up"), color = color)
   })
   output$minBox <- renderInfoBox({
-    min = min_report[2,2]
+    min_report = reports %>% 
+      group_by(., Incident.Category) %>% 
+      summarize(., n = n()) %>% 
+      arrange(., n)
     color = "teal"
     cap = paste("Least Common:", min_report[2,1])
-    infoBox(cap, min, icon = icon("angle-double-down"), color = color)
+    infoBox(cap, min_report[2,2], icon = icon("angle-double-down"), color = color)
   })
 ## Timeline Tab Output
   output$timeline <- renderGvis(
@@ -117,6 +132,7 @@ function(input, output, session){
                     options=list(
                       hAxis="{title:'Day of the Week'}",
                       vAxis="{title:'Total Incidents Reported'}",
+                      vAxes="[{viewWindowMode:'explicit', viewWindow:{min:0}}]",
                       legend = "none",
                       width=800, height=290,
                       colors = "['#F39C12']"))
@@ -190,7 +206,7 @@ function(input, output, session){
       "Police.District", c(input$compare_select1, input$compare_select2), 
       options = list(
         height = 300, width=1200,
-        hAxis="{title: 'Neighborhood'}",
+        hAxis="{title: 'District'}",
         chartArea="{width:\"80%\",height:\"70%\"}",
         colors = "['#F39C12', 'green']"))
   )
